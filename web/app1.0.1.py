@@ -532,6 +532,7 @@ def ui_left_panel():
     doc_path = ""
     if selected_db and root_path and st.session_state.get("selected_content"):
         paths = ensure_db_structure(Path(root_path))
+        st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
         lib_paths = load_lib_paths(paths["lib_path_txt"])
 
         st.write("lib_paths[:10]=", lib_paths[:10])
