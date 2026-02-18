@@ -19,6 +19,7 @@ from docx.shared import Inches
 from PIL import Image
 import mammoth
 import platform
+import time
 # st.write("当前操作系统:", platform.system())
 # =========================================================
 # 0) 相对路径配置（项目根目录 = web/ 的上一级）
@@ -753,7 +754,8 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 s = s + f"[{ref}]" + f"[{label}]"
 
                 append_text_to_docx(Path(doc_path), s)
-
+                st.write ("Path(doc_path)=",Path(doc_path))
+                time.sleep(5)
                 # st.success("写入成功")
 
                 new_score = record_history_and_increment()
@@ -770,6 +772,8 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
             if not doc_path or not Path(doc_path).exists():
                 st.error("未找到 Word 文件")
             else:
+                st.write("doc_path=",doc_path)
+                time.sleep(5)
                 st.session_state["preview_doc_path"] = doc_path
                 st.switch_page("pages/文件查看.py")
     st.divider()
