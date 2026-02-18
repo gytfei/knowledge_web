@@ -1,0 +1,16 @@
+your_project/
+├─ web/
+│  └─ app.py
+├─ data/
+│  ├─ app_state/
+│  │  ├─ Rootpath.txt
+│  │  ├─ Prepage.txt
+│  │  ├─ last_title.txt
+│  │  ├─ newkeyword.txt
+│  │  ├─ label.txt
+│  │  ├─ temp.png
+│  │  └─ template.docx
+│  └─ Database/
+│     ├─ File/
+│     │  └─ Database.db
+│     └─ (各个数据库目录会自动建在 data/Database/ 下)

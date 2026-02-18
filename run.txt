@@ -1,0 +1,1 @@
+streamlit run D:\knowledge_web_2\web\app.py	
