@@ -19,7 +19,7 @@ from docx.shared import Inches
 from PIL import Image
 import mammoth
 import platform
-st.write("当前操作系统:", platform.system())
+# st.write("当前操作系统:", platform.system())
 # =========================================================
 # 0) 相对路径配置（项目根目录 = web/ 的上一级）
 # =========================================================
@@ -55,20 +55,15 @@ def remove_invalid_characters(input_string: str) -> str:
         input_string,
     )
 def convert_doc_path(doc_path, window_root, ubuntu_root):
-    doc_path = Path(doc_path)
-    window_root = Path(window_root)
+    doc_path = Path(str(doc_path).replace("\\", "/"))
+    window_root = Path(str(window_root).replace("\\", "/"))
 
     try:
-        # 计算相对路径
         relative_part = doc_path.relative_to(window_root)
     except ValueError:
-        # 如果路径不在 window_root 下，直接返回原路径
         return str(doc_path)
 
-    # 拼接 ubuntu 根路径
-    new_path = Path(ubuntu_root) / relative_part
-
-    return str(new_path)
+    return str(Path(ubuntu_root) / relative_part)
 def set_txt_state(path: Path, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(str(value), encoding="utf-8", errors="ignore")
@@ -343,7 +338,7 @@ def load_lib_paths(lib_path_txt: Path) -> list[str]:
         encoding="utf-8",
         errors="ignore"
     ).splitlines()
-    st.write("lines[:3]=", lines[:3])
+    # st.write("lines[:3]=", lines[:3])
     # 只做 strip，不检查路径是否存在，不回写
     return [ln.strip() for ln in lines if ln.strip()]
 
@@ -351,10 +346,10 @@ def find_doc_path_by_keyword(lib_paths: list[str], keyword: str) -> str:
     for p in lib_paths:
         if platform.system() == "Linux":
             p = p.replace("\\", "/")
-        st.write("Path(p)=", Path(p))
-        st.write("Path(p).stem.=", Path(p).stem)
+        # st.write("Path(p)=", Path(p))
+        # st.write("Path(p).stem.=", Path(p).stem)
         name = Path(p).stem.split(".")[0]
-        st.write("name=", name)
+        # st.write("name=", name)
         if name == keyword:
             return p
 
@@ -526,15 +521,15 @@ def ui_left_panel():
                 ubuntu_root=rp
             else:
                 raise RuntimeError(f"Unsupported OS: {platform.system()}")
-            st.write("rp=", rp)
+            # st.write("rp=", rp)
             if not rp:
                 st.error("数据库 root_path 为空")
             else:
                 paths = ensure_db_structure(Path(rp))
-                st.write("paths[syn_db]=", paths["syn_db"])
-                st.write("keyword2=",keyword2)
+                # st.write("paths[syn_db]=", paths["syn_db"])
+                # st.write("keyword2=",keyword2)
                 results = syn_get_similar_contents(paths["syn_db"], keyword2)
-                st.write("results478=", results)
+                # st.write("results478=", results)
                 st.session_state["search_results"] = results
                 st.session_state["selected_content"] = results[0] if results else ""
 
@@ -557,20 +552,25 @@ def ui_left_panel():
     doc_path = ""
     if selected_db and rp and st.session_state.get("selected_content"):
         paths = ensure_db_structure(Path(rp))
-        st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
+        # st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
         lib_paths = load_lib_paths(paths["lib_path_txt"])
 
-        st.write("lib_paths[:10]=", lib_paths[:10])
+        # st.write("lib_paths[:10]=", lib_paths[:10])
         st.write("keword=",  st.session_state["selected_content"])
         doc_path = find_doc_path_by_keyword(lib_paths, st.session_state["selected_content"])
         st.write("doc_path=", doc_path)
+        st.write("platform.system()",platform.system())
+
+        st.write("window_root",window_root)
         if platform.system() == "Linux":
+            st.write("ubuntu_root", ubuntu_root)
             doc_path = convert_doc_path(
                 doc_path,
                 window_root,
                 ubuntu_root
             )
-        st.write("doc_path552=", doc_path)
+
+            st.write("doc_path552=", doc_path)
 
         doc_rel = extract_string_from_doc_path(doc_path) if doc_path else ""
         st.write("doc_rel555=", doc_rel)

@@ -42,7 +42,7 @@ else:
         f"""
         <div style="
             background-color:white;
-            padding:40px;
+            padding:0px;
             max-width:900px;
             margin:auto;
             font-family:Arial;
@@ -51,6 +51,6 @@ else:
         {html}
         </div>
         """,
-        height=900,
+        height=1000,
         scrolling=True
     )
