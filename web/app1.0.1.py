@@ -516,30 +516,27 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     colA, colB = st.columns([1, 3])
 
     with colA:
-        st.markdown("**引用源**")
+        # st.markdown("**引用源**")
         ref_num = st.text_input(
             "引用源",
             value=st.session_state.get("ref_num", ""),
-            key="ref_num",
-            label_visibility="collapsed"
+            key="ref_num"
         )
 
     with colB:
-        st.markdown("**小标题**")
+        # st.markdown("**小标题**")
         declare = st.text_input(
             "小标题",
             value=st.session_state.get("declare", ""),
-            key="declare",
-            label_visibility="collapsed"
+            key="declare"
         )
     col_opt1, col_opt2 = st.columns([2, 1], gap="small")
 
     with col_opt1:
-        editor_text = st.text_area(
-            "正文编辑区",
-            key="editor_text",
-            height=180,
-            label_visibility="collapsed"
+        hold = st.checkbox(
+            "保持小标题",
+            value=st.session_state.get("hold", False),
+            key="hold"
         )
 
     with col_opt2:
@@ -579,7 +576,7 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     if "editor_text" not in st.session_state:
         st.session_state.editor_text = ""
     editor_text = st.text_area(
-        "",
+        " ",
         key="editor_text",
         height=180
     )
@@ -647,8 +644,27 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
             if not doc_path or not Path(doc_path).exists():
                 st.error("未找到 Word 文件")
             else:
-                st.session_state["preview_doc_path"] = doc_path
-                st.switch_page("pages/preview.py")
+                html_content = docx_to_html(Path(doc_path))
+
+                st.markdown("### 📄 文档预览")
+
+                st.components.v1.html(
+                    f"""
+                    <div style="
+                        background-color:white;
+                        padding:30px;
+                        border-radius:10px;
+                        max-height:700px;
+                        overflow:auto;
+                        font-family:Arial, sans-serif;
+                        line-height:1.6;
+                    ">
+                    {html_content}
+                    </div>
+                    """,
+                    height=750,
+                    scrolling=True
+                )
     st.divider()
 
     st.markdown("### 图片保存")
@@ -794,7 +810,8 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
 
 
 def main():
-    st.set_page_config(page_title="共享笔记本", layout="centered")
+    # st.set_page_config(page_title="共享笔记本", layout="centered")
+    st.set_page_config(page_title="共享笔记本", layout="wide")
     st.markdown("""
     <style>
 
