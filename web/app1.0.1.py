@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from datetime import date
 import datetime
-
+from pathlib import Path
 import streamlit as st
 from difflib import SequenceMatcher
 from collections import OrderedDict
@@ -18,7 +18,8 @@ from docx import Document
 from docx.shared import Inches
 from PIL import Image
 import mammoth
-
+import platform
+st.write("当前操作系统:", platform.system())
 # =========================================================
 # 0) 相对路径配置（项目根目录 = web/ 的上一级）
 # =========================================================
@@ -53,7 +54,21 @@ def remove_invalid_characters(input_string: str) -> str:
         "",
         input_string,
     )
+def convert_doc_path(doc_path, window_root, ubuntu_root):
+    doc_path = Path(doc_path)
+    window_root = Path(window_root)
 
+    try:
+        # 计算相对路径
+        relative_part = doc_path.relative_to(window_root)
+    except ValueError:
+        # 如果路径不在 window_root 下，直接返回原路径
+        return str(doc_path)
+
+    # 拼接 ubuntu 根路径
+    new_path = Path(ubuntu_root) / relative_part
+
+    return str(new_path)
 def set_txt_state(path: Path, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(str(value), encoding="utf-8", errors="ignore")
@@ -147,7 +162,15 @@ def db_get_root_path(database_name: str) -> str:
     conn.close()
     return row[0] if row else ""
 
-
+def db_get_root_path_ubuntu(database_name: str) -> str:
+    if not database_name:
+        return ""
+    conn = sqlite3.connect(P_DATABASE_DB)
+    cur = conn.cursor()
+    cur.execute("SELECT root_path FROM ubuntu_path WHERE Database_name=?", (database_name,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else ""
 def db_insert_path(database_name: str, root_path: str) -> None:
     init_database_db(P_DATABASE_DB)
     conn = sqlite3.connect(P_DATABASE_DB)
@@ -461,14 +484,21 @@ def ui_left_panel():
         # keyword2 = sanitize_keyword(keyword)
         # st.session_state["keyword_input"] = keyword2
         keyword2 = sanitize_keyword(keyword)
-        st.write("原始 keyword:", keyword)
-        st.write("清洗后 keyword2:", keyword2)
+        # st.write("原始 keyword:", keyword)
+        # # st.write("清洗后 keyword2:", keyword2)
         set_txt_state(P_LAST_TITLE_TXT, keyword2)
 
         if not selected_db:
             st.error("请先选择数据库")
         else:
-            rp = db_get_root_path(selected_db)
+            if platform.system() == "Windows":
+                rp = db_get_root_path(selected_db)
+                window_root=rp
+            elif platform.system() == "Linux":
+                rp = db_get_root_path_ubuntu(selected_db)
+                ubuntu_root=rp
+            else:
+                raise RuntimeError(f"Unsupported OS: {platform.system()}")
             st.write("rp=", rp)
             if not rp:
                 st.error("数据库 root_path 为空")
@@ -499,8 +529,23 @@ def ui_left_panel():
     if selected_db and root_path and st.session_state.get("selected_content"):
         paths = ensure_db_structure(Path(root_path))
         lib_paths = load_lib_paths(paths["lib_path_txt"])
+
+        # lib_paths = convert_paths_to_ubuntu(
+        #     lib_paths,
+        #     window_root,
+        #     ubuntu_root
+        # )
         doc_path = find_doc_path_by_keyword(lib_paths, st.session_state["selected_content"])
+        if platform.system() == "Linux":
+            doc_path = convert_doc_path(
+                doc_path,
+                window_root,
+                ubuntu_root
+            )
+        st.write("doc_path=", doc_path)
+
         doc_rel = extract_string_from_doc_path(doc_path) if doc_path else ""
+        st.write("doc_rel=", doc_rel)
     #
     # st.text_input("Word 相对路径（资料库后）", value=doc_rel, disabled=True, key="doc_rel_display")
 
