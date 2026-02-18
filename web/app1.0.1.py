@@ -504,6 +504,8 @@ def ui_left_panel():
                 st.error("数据库 root_path 为空")
             else:
                 paths = ensure_db_structure(Path(rp))
+                st.write("paths[syn_db]=", paths["syn_db"])
+                st.write("keyword2=",keyword2)
                 results = syn_get_similar_contents(paths["syn_db"], keyword2)
                 st.write("results478=", results)
                 st.session_state["search_results"] = results
