@@ -464,7 +464,13 @@ def ui_left_panel():
     db_names = db_fetch_database_names()
 
     selected_db = st.selectbox("选择数据库", db_names, index=0, key="db_select")
-    root_path = db_get_root_path(selected_db) if selected_db else ""
+    # rp = db_get_root_path(selected_db) if selected_db else ""
+    if platform.system() == "Windows":
+        rp = db_get_root_path(selected_db) if selected_db else ""
+
+    elif platform.system() == "Linux":
+        rp = db_get_root_path_ubuntu(selected_db)
+
     #
     # # 显示 root_path
     # st.text_input("数据库根目录（只读）", value=root_path, disabled=True, key="root_path_display")
