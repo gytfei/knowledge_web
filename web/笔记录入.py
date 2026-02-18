@@ -43,7 +43,22 @@ P_TEMP_PNG = APP_STATE_DIR / "temp.png"
 
 P_DATABASE_DB = DATABASE_FILE_DIR / "Database.db"
 
+st.markdown("""
+<style>
 
+/* 隐藏默认的多页面导航标题 */
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] > ul {
+    margin-top: 10px;
+}
+
+/* 改 sidebar 页面文字样式 */
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] span {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # =========================================================
 # 1) 通用小工具
 # =========================================================
@@ -473,8 +488,42 @@ def ui_left_panel():
     """
     st.markdown("### 数据库 / 关键词")
     db_names = db_fetch_database_names()
+    # ===== 同一行布局 =====
+    col1, col2, col3 = st.columns([1.0, 1.7, 0.5])
 
-    selected_db = st.selectbox("选择数据库", db_names, index=0, key="db_select")
+    with col1:
+        st.markdown("**选择数据库**")
+        selected_db = st.selectbox(
+            "选择数据库",
+            db_names,
+            key="db_select",
+            label_visibility="collapsed"
+        )
+
+    with col2:
+        st.markdown("**关键词**")
+        keyword = st.text_input(
+            "关键词",
+            key="keyword_input",
+            label_visibility="collapsed"
+        )
+
+    with col3:
+        with col3:
+            st.markdown(
+                """
+                <div style="height: 33px;"></div>
+                """,
+                unsafe_allow_html=True
+            )
+            search_clicked = st.button(
+                "检索",
+                key="btn_search",
+                use_container_width=True,
+                type="primary"
+            )
+
+    # selected_db = st.selectbox("选择数据库", db_names, index=0, key="db_select")
     # rp = db_get_root_path(selected_db) if selected_db else ""
     if platform.system() == "Windows":
         rp = db_get_root_path(selected_db)
@@ -497,10 +546,10 @@ def ui_left_panel():
     #         st.success(f"索引已重建：共 {n} 个 doc/docx")
 
     # st.divider()
-    keyword = st.text_input("关键词", value=st.session_state.get("keyword_input", ""), key="keyword_input")
+    # keyword = st.text_input("关键词", value=st.session_state.get("keyword_input", ""), key="keyword_input")
 
     # 查同义词 / 匹配 content
-    if st.button("检索", key="btn_search"):
+    if search_clicked:
         # keyword2 = sanitize_keyword(keyword)
         # st.session_state["keyword_input"] = keyword2
         keyword2 = sanitize_keyword(keyword)
@@ -722,7 +771,7 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 st.error("未找到 Word 文件")
             else:
                 st.session_state["preview_doc_path"] = doc_path
-                st.switch_page("pages/preview.py")
+                st.switch_page("pages/文件查看.py")
     st.divider()
 
     st.markdown("### 图片保存")
@@ -870,6 +919,7 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
 def main():
     # st.set_page_config(page_title="共享笔记本", layout="centered")
     st.set_page_config(page_title="共享笔记本", layout="wide")
+    
     st.markdown("""
     <style>
 
@@ -928,6 +978,58 @@ def main():
     }
     div[data-testid="stButton"] button {
         font-weight: 700 !important;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+
+    st.markdown("""
+    <style>
+    /* =============================
+       让 Selectbox / TextInput / Button 真正同高同基线
+       ============================= */
+
+    /* 1) 统一外层控件块的下方空隙（可选，防止上下跳） */
+    div[data-testid="stSelectbox"], 
+    div[data-testid="stTextInput"], 
+    div[data-testid="stButton"]{
+        margin-top: 0rem !important;
+        margin-bottom: 0rem !important;
+    }
+
+    /* 2) Selectbox：控制框（BaseWeb Select control） */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        min-height: 42px !important;
+        height: 42px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        display: flex !important;
+        align-items: center !important;   /* 垂直居中 */
+    }
+
+    /* 3) Selectbox：内部文字行高（避免视觉偏移） */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
+        line-height: 42px !important;
+    }
+
+    /* 4) TextInput：输入框本体 */
+    div[data-testid="stTextInput"] input {
+        min-height: 42px !important;
+        height: 42px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        line-height: 42px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 5) Button：统一高度（覆盖 secondary / primary 等） */
+    div[data-testid="stButton"] button {
+        min-height: 42px !important;
+        height: 42px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        line-height: 42px !important;
     }
 
     </style>

@@ -24,7 +24,22 @@ h1, h2, h3 {
 }
 </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
 
+/* 隐藏默认的多页面导航标题 */
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] > ul {
+    margin-top: 10px;
+}
+
+/* 改 sidebar 页面文字样式 */
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] span {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 st.title("📄 文档预览")
 
 
