@@ -458,20 +458,24 @@ def ui_left_panel():
 
     # 查同义词 / 匹配 content
     if st.button("检索", key="btn_search"):
-        keyword2 = sanitize_keyword(keyword)
+        # keyword2 = sanitize_keyword(keyword)
         # st.session_state["keyword_input"] = keyword2
         keyword2 = sanitize_keyword(keyword)
+        st.write("原始 keyword:", keyword)
+        st.write("清洗后 keyword2:", keyword2)
         set_txt_state(P_LAST_TITLE_TXT, keyword2)
 
         if not selected_db:
             st.error("请先选择数据库")
         else:
             rp = db_get_root_path(selected_db)
+            st.write("rp=", rp)
             if not rp:
                 st.error("数据库 root_path 为空")
             else:
                 paths = ensure_db_structure(Path(rp))
                 results = syn_get_similar_contents(paths["syn_db"], keyword2)
+                st.write("results478=", results)
                 st.session_state["search_results"] = results
                 st.session_state["selected_content"] = results[0] if results else ""
 
