@@ -331,9 +331,9 @@ def load_lib_paths(lib_path_txt: Path) -> list[str]:
     if not lib_path_txt.exists():
         return []
     lines = lib_path_txt.read_text(encoding="utf-8", errors="ignore").splitlines()
-    valid = [ln.strip() for ln in lines if ln.strip() and Path(ln.strip()).exists()]
-    # 回写清理
-    lib_path_txt.write_text("\n".join(valid) + ("\n" if valid else ""), encoding="utf-8", errors="ignore")
+    # valid = [ln.strip() for ln in lines if ln.strip() and Path(ln.strip()).exists()]
+    # # 回写清理
+    # lib_path_txt.write_text("\n".join(valid) + ("\n" if valid else ""), encoding="utf-8", errors="ignore")
     return valid
 
 
