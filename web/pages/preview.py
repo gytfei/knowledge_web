@@ -51,6 +51,6 @@ else:
         {html}
         </div>
         """,
-        height=700,
+        height=900,
         scrolling=True
     )

@@ -482,10 +482,13 @@ def ui_left_panel():
     selected_db = st.selectbox("选择数据库", db_names, index=0, key="db_select")
     # rp = db_get_root_path(selected_db) if selected_db else ""
     if platform.system() == "Windows":
-        rp = db_get_root_path(selected_db) if selected_db else ""
-
+        rp = db_get_root_path(selected_db)
+        window_root = rp
     elif platform.system() == "Linux":
+        rp = db_get_root_path(selected_db)
+        window_root = rp
         rp = db_get_root_path_ubuntu(selected_db)
+        ubuntu_root = rp
 
     #
     # # 显示 root_path
@@ -718,27 +721,8 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
             if not doc_path or not Path(doc_path).exists():
                 st.error("未找到 Word 文件")
             else:
-                html_content = docx_to_html(Path(doc_path))
-
-                st.markdown("### 📄 文档预览")
-
-                st.components.v1.html(
-                    f"""
-                    <div style="
-                        background-color:white;
-                        padding:30px;
-                        border-radius:10px;
-                        max-height:700px;
-                        overflow:auto;
-                        font-family:Arial, sans-serif;
-                        line-height:1.6;
-                    ">
-                    {html_content}
-                    </div>
-                    """,
-                    height=750,
-                    scrolling=True
-                )
+                st.session_state["preview_doc_path"] = doc_path
+                st.switch_page("pages/preview.py")
     st.divider()
 
     st.markdown("### 图片保存")
