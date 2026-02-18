@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]          # your_project/
 DATA_DIR = BASE_DIR / "data"
 APP_STATE_DIR = DATA_DIR / "app_state"
 DATABASE_ROOT = DATA_DIR / "Database"
-DATABASE_FILE_DIR = DATABASE_ROOT / "file"
+DATABASE_FILE_DIR = DATABASE_ROOT / "File"
 
 APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
 DATABASE_ROOT.mkdir(parents=True, exist_ok=True)
