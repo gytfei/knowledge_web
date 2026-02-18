@@ -327,15 +327,25 @@ def rebuild_lib_path_index(lib_dir: Path, lib_path_txt: Path) -> int:
     return len(paths)
 
 
+# def load_lib_paths(lib_path_txt: Path) -> list[str]:
+#     if not lib_path_txt.exists():
+#         return []
+#     lines = lib_path_txt.read_text(encoding="utf-8", errors="ignore").splitlines()
+#     valid = [ln.strip() for ln in lines if ln.strip() and Path(ln.strip()).exists()]
+#     # # 回写清理
+#     lib_path_txt.write_text("\n".join(valid) + ("\n" if valid else ""), encoding="utf-8", errors="ignore")
+#     return valid
 def load_lib_paths(lib_path_txt: Path) -> list[str]:
     if not lib_path_txt.exists():
         return []
-    lines = lib_path_txt.read_text(encoding="utf-8", errors="ignore").splitlines()
-    # valid = [ln.strip() for ln in lines if ln.strip() and Path(ln.strip()).exists()]
-    # # 回写清理
-    # lib_path_txt.write_text("\n".join(valid) + ("\n" if valid else ""), encoding="utf-8", errors="ignore")
-    return valid
 
+    lines = lib_path_txt.read_text(
+        encoding="utf-8",
+        errors="ignore"
+    ).splitlines()
+
+    # 只做 strip，不检查路径是否存在，不回写
+    return [ln.strip() for ln in lines if ln.strip()]
 
 def find_doc_path_by_keyword(lib_paths: list[str], keyword: str) -> str:
     for p in lib_paths:
