@@ -343,7 +343,7 @@ def load_lib_paths(lib_path_txt: Path) -> list[str]:
         encoding="utf-8",
         errors="ignore"
     ).splitlines()
-
+    st.write("lines[:3]=", lines[:3])
     # 只做 strip，不检查路径是否存在，不回写
     return [ln.strip() for ln in lines if ln.strip()]
 
