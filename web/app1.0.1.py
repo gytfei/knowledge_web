@@ -167,7 +167,7 @@ def db_get_root_path_ubuntu(database_name: str) -> str:
         return ""
     conn = sqlite3.connect(P_DATABASE_DB)
     cur = conn.cursor()
-    cur.execute("SELECT root_path FROM ubuntu_path WHERE Database_name=?", (database_name,))
+    cur.execute("SELECT ubuntu_path FROM PATH WHERE Database_name=?", (database_name,))
     row = cur.fetchone()
     conn.close()
     return row[0] if row else ""
