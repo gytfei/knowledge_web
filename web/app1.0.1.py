@@ -518,25 +518,28 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     with colA:
         st.markdown("**引用源**")
         ref_num = st.text_input(
-            "",
+            "引用源",
             value=st.session_state.get("ref_num", ""),
-            key="ref_num"
+            key="ref_num",
+            label_visibility="collapsed"
         )
 
     with colB:
         st.markdown("**小标题**")
         declare = st.text_input(
-            "",
+            "小标题",
             value=st.session_state.get("declare", ""),
-            key="declare"
+            key="declare",
+            label_visibility="collapsed"
         )
     col_opt1, col_opt2 = st.columns([2, 1], gap="small")
 
     with col_opt1:
-        hold = st.checkbox(
-            "保持小标题",
-            value=st.session_state.get("hold", False),
-            key="hold"
+        editor_text = st.text_area(
+            "正文编辑区",
+            key="editor_text",
+            height=180,
+            label_visibility="collapsed"
         )
 
     with col_opt2:
