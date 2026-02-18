@@ -495,6 +495,8 @@ def ui_left_panel():
                 rp = db_get_root_path(selected_db)
                 window_root=rp
             elif platform.system() == "Linux":
+                rp = db_get_root_path(selected_db)
+                window_root = rp
                 rp = db_get_root_path_ubuntu(selected_db)
                 ubuntu_root=rp
             else:
@@ -537,7 +539,10 @@ def ui_left_panel():
         #     window_root,
         #     ubuntu_root
         # )
+        st.write("lib_paths[:10]=", lib_paths[:10])
+        st.write("keword=",  st.session_state["selected_content"])
         doc_path = find_doc_path_by_keyword(lib_paths, st.session_state["selected_content"])
+        st.write("doc_path=", doc_path)
         if platform.system() == "Linux":
             doc_path = convert_doc_path(
                 doc_path,
