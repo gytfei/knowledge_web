@@ -349,9 +349,13 @@ def load_lib_paths(lib_path_txt: Path) -> list[str]:
 
 def find_doc_path_by_keyword(lib_paths: list[str], keyword: str) -> str:
     for p in lib_paths:
+        st.write("Path(p)=", Path(p))
+        st.write("Path(p).stem.=", Path(p).stem)
         name = Path(p).stem.split(".")[0]
+        st.write("name=", name)
         if name == keyword:
             return p
+
     return ""
 
 
