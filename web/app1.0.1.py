@@ -530,8 +530,8 @@ def ui_left_panel():
     # 显示当前选中的 docx path（来自 Lib_path.txt）
     doc_rel = ""
     doc_path = ""
-    if selected_db and root_path and st.session_state.get("selected_content"):
-        paths = ensure_db_structure(Path(root_path))
+    if selected_db and rp and st.session_state.get("selected_content"):
+        paths = ensure_db_structure(Path(rp))
         st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
         lib_paths = load_lib_paths(paths["lib_path_txt"])
 
@@ -552,7 +552,7 @@ def ui_left_panel():
     #
     # st.text_input("Word 相对路径（资料库后）", value=doc_rel, disabled=True, key="doc_rel_display")
 
-    return selected_db, root_path, doc_path
+    return selected_db, rp, doc_path
 
 def docx_to_html(docx_path: Path) -> str:
     with open(docx_path, "rb") as docx_file:
