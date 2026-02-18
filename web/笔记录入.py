@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]          # your_project/
 DATA_DIR = BASE_DIR / "data"
 APP_STATE_DIR = DATA_DIR / "app_state"
 DATABASE_ROOT = DATA_DIR / "Database"
-DATABASE_FILE_DIR = DATABASE_ROOT / "File"
+DATABASE_FILE_DIR = DATABASE_ROOT / "file"
 
 APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
 DATABASE_ROOT.mkdir(parents=True, exist_ok=True)
@@ -297,7 +297,7 @@ def ensure_db_structure(root_path: Path) -> dict[str, Path]:
     你原本的结构：<root>/file/Syn.db 和 <root>/资料库
     这里统一用：<root>/File/Syn.db （大小写统一）
     """
-    file_dir = root_path / "File"
+    file_dir = root_path / "file"
     lib_dir = root_path / "资料库"
     syn_db = file_dir / "Syn.db"
     lib_path_txt = file_dir / "Lib_path.txt"
