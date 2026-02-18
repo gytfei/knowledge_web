@@ -534,11 +534,6 @@ def ui_left_panel():
         paths = ensure_db_structure(Path(root_path))
         lib_paths = load_lib_paths(paths["lib_path_txt"])
 
-        # lib_paths = convert_paths_to_ubuntu(
-        #     lib_paths,
-        #     window_root,
-        #     ubuntu_root
-        # )
         st.write("lib_paths[:10]=", lib_paths[:10])
         st.write("keword=",  st.session_state["selected_content"])
         doc_path = find_doc_path_by_keyword(lib_paths, st.session_state["selected_content"])
@@ -549,10 +544,10 @@ def ui_left_panel():
                 window_root,
                 ubuntu_root
             )
-        st.write("doc_path=", doc_path)
+        st.write("doc_path552=", doc_path)
 
         doc_rel = extract_string_from_doc_path(doc_path) if doc_path else ""
-        st.write("doc_rel=", doc_rel)
+        st.write("doc_rel555=", doc_rel)
     #
     # st.text_input("Word 相对路径（资料库后）", value=doc_rel, disabled=True, key="doc_rel_display")
 
