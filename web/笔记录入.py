@@ -24,6 +24,7 @@ import time
 from datetime import datetime
 from streamlit_paste_button import paste_image_button
 import io
+import re
 # st.write("当前操作系统:", platform.system())
 # =========================================================
 # 0) 相对路径配置（项目根目录 = web/ 的上一级）
@@ -851,18 +852,17 @@ def get_subfolders(base_dir: Path) -> list[str]:
             rel = full.relative_to(base_dir)
             folders.append(str(rel))
     return sorted(folders)
-
 def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     st.divider()
 
-    # 🔥 同步当前 Content 到同义词管理
     if "content_select" in st.session_state:
         st.session_state["syn_current_content"] = st.session_state["content_select"]
+
     st.markdown("### 内容录入")
+
     colA, colB = st.columns([1, 3])
 
     with colA:
-        # st.markdown("**引用源**")
         ref_num = st.text_input(
             "引用源",
             value=st.session_state.get("ref_num", ""),
@@ -870,12 +870,12 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
         )
 
     with colB:
-        # st.markdown("**小标题**")
         declare = st.text_input(
             "小标题",
             value=st.session_state.get("declare", ""),
             key="declare"
         )
+
     col_opt1, col_opt2 = st.columns([2, 1], gap="small")
 
     with col_opt1:
@@ -885,14 +885,32 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
             key="hold"
         )
 
+    # ========= 两个按钮对齐 =========
     with col_opt2:
-        if st.button("去掉回车符", key="btn_remove_enter", use_container_width=True):
-            text = st.session_state.get("editor_text", "")
-            if text:
-                text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
-                st.session_state["editor_text"] = text
+        btn_col1, btn_col2 = st.columns(2, gap="small")
 
+        # 🔥 压缩连续回车为一个
+        with btn_col1:
+            if st.button("去掉多余回车", key="btn_remove_double_enter", use_container_width=True):
+                text = st.session_state.get("editor_text", "")
+                if text:
+                    # 统一换行符为 \n
+                    text = text.replace("\r\n", "\n").replace("\r", "\n")
 
+                    # 将连续两个以上换行压缩为一个
+                    text = re.sub(r"\n{2,}", "\n", text)
+
+                    st.session_state["editor_text"] = text
+
+        # 🔥 删除所有回车
+        with btn_col2:
+            if st.button("去掉回车符", key="btn_remove_enter", use_container_width=True):
+                text = st.session_state.get("editor_text", "")
+                if text:
+                    text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
+                    st.session_state["editor_text"] = text
+
+    # ========= 正文编辑 =========
     st.markdown(
         "<div style='font-size:22px;font-weight:700;margin-bottom:-15px;'>正文编辑区</div>",
         unsafe_allow_html=True
@@ -900,21 +918,23 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
 
     if "editor_text" not in st.session_state:
         st.session_state.editor_text = ""
+
     editor_text = st.text_area(
         " ",
         key="editor_text",
         height=180
     )
 
-    # ✅ 清空 + 导入 并排（导入更宽）
+    # ========= 底部按钮 =========
     col_btn1, col_btn2, col_btn3 = st.columns([1.5, 2.5, 2], gap="small")
+
     with col_btn1:
         if st.button("清空", key="btn_clear_editor", use_container_width=True):
             st.session_state["editor_text"] = ""
 
     with col_btn2:
-        # 关键：导入到 docx
         label = read_txt_state(P_LABEL_TXT, "User")
+
         if st.button(
                 "保存笔记",
                 key="btn_import_docx",
@@ -925,8 +945,9 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 if not selected_db or not root_path:
                     st.error("请先选择数据库")
                     return
+
                 if not doc_path:
-                    st.error("未定位到 Word 文档路径。请先“重建资料库索引”，或确保资料库中存在同名 docx。")
+                    st.error("未定位到 Word 文档路径")
                     return
 
                 if not Path(doc_path).exists():
@@ -947,8 +968,10 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                     s = content
 
                 s = remove_invalid_characters(s)
+
                 if "\n" in s:
                     s = "{" + s + "}"
+
                 s = s + f"[{ref}]" + f"[{label}]"
 
                 append_text_to_docx(Path(doc_path), s)
@@ -962,22 +985,20 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 new_score = record_history_and_increment()
                 st.toast(f"Action Score = {new_score}", icon="✅")
 
-                # 用删除，而不是赋值
                 del st.session_state["editor_text"]
 
                 st.rerun()
+
             except Exception:
                 st.error("写入失败：\n" + traceback.format_exc())
+
     with col_btn3:
         if st.button("网页打开", key="btn_open_html", use_container_width=True):
             if not doc_path or not Path(doc_path).exists():
                 st.error("未找到 Word 文件")
             else:
-                # st.write("doc_path=",doc_path)
-                # time.sleep(5)
                 st.session_state["preview_doc_path"] = doc_path
                 st.switch_page("pages/文件查看.py")
-
 
 def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
     st.divider()
