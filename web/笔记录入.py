@@ -8,7 +8,7 @@ import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import date
-import datetime
+# import datetime
 from pathlib import Path
 import streamlit as st
 from difflib import SequenceMatcher
@@ -275,8 +275,8 @@ def record_history_and_increment() -> int:
         # No 递推：如果有前天，按日期差累加；否则 No=1
         if len(entries) == 2:
             before = entries[1]
-            last_date = datetime.datetime.strptime(yesterday[0], "%Y-%m-%d")
-            before_date = datetime.datetime.strptime(before[0], "%Y-%m-%d")
+            last_date = datetime.strptime(yesterday[0], "%Y-%m-%d")
+            before_date = datetime.strptime(before[0], "%Y-%m-%d")
             date_diff = (last_date - before_date).days
 
             if before[2] not in (None, ""):
@@ -1014,8 +1014,6 @@ def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
             index=0,
             key="img_size"
         )
-
-
 
     # =============================
     # 右下：插入按钮
