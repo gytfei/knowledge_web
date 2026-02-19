@@ -853,6 +853,7 @@ def get_subfolders(base_dir: Path) -> list[str]:
     return sorted(folders)
 
 def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
+    st.divider()
     """
     右侧：编辑区 + 导入 docx + 图片导入 + 同义词/新建文档/新建数据库
     """
@@ -978,7 +979,7 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 # time.sleep(5)
                 st.session_state["preview_doc_path"] = doc_path
                 st.switch_page("pages/文件查看.py")
-    st.divider()
+
 
 def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
     st.divider()
@@ -1042,8 +1043,8 @@ def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
                     image_path=P_TEMP_PNG,
                     docx_path=Path(doc_path),
                     size=float(size),
-                    ref_num=(ref_num or ""),
-                    declare=(declare or ""),
+                    ref_num=st.session_state.get("ref_num", ""),
+                    declare=st.session_state.get("declare", ""),
                     label=read_txt_state(P_LABEL_TXT, "User"),
                 )
 
@@ -1052,9 +1053,11 @@ def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
                 new_score = record_history_and_increment()
                 st.toast(f"Action Score = {new_score}", icon="🖼️")
 
-                if not hold:
-                    st.session_state["declare"] = ""
-
+                # if not st.session_state.get("hold", False):
+                #     st.session_state["declare"] = ""
+                if not st.session_state.get("hold", False):
+                    del st.session_state["declare"]
+                    st.rerun()
             except Exception as e:
                 st.error(f"插入失败: {e}")
     # =============================
@@ -1067,8 +1070,15 @@ def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
             key="paste_image"
         )
 
-        if pasted is not None and hasattr(pasted, "image_data"):
-            st.session_state.image_to_use = pasted.image_data.convert("RGB")
+        if (
+                pasted is not None
+                and hasattr(pasted, "image_data")
+                and pasted.image_data is not None
+        ):
+            try:
+                st.session_state.image_to_use = pasted.image_data.convert("RGB")
+            except Exception as e:
+                st.error(f"粘贴图片解析失败: {e}")
     # =============================
     # 统一图片预览（底部）
     # =============================
