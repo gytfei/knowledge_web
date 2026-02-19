@@ -854,9 +854,7 @@ def get_subfolders(base_dir: Path) -> list[str]:
 
 def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     st.divider()
-    """
-    右侧：编辑区 + 导入 docx + 图片导入 + 同义词/新建文档/新建数据库
-    """
+
     # 🔥 同步当前 Content 到同义词管理
     if "content_select" in st.session_state:
         st.session_state["syn_current_content"] = st.session_state["content_select"]
