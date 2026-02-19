@@ -13,7 +13,7 @@ from pathlib import Path
 import streamlit as st
 from difflib import SequenceMatcher
 from collections import OrderedDict
-
+from streamlit_paste_button import paste_image_button
 from docx import Document
 from docx.shared import Inches
 from PIL import Image
@@ -22,6 +22,8 @@ import platform
 import time
 # 🔥 追加写入 updated.txt
 from datetime import datetime
+from streamlit_paste_button import paste_image_button
+import io
 # st.write("当前操作系统:", platform.system())
 # =========================================================
 # 0) 相对路径配置（项目根目录 = web/ 的上一级）
@@ -447,7 +449,7 @@ def insert_image_into_docx(image_path: Path, docx_path: Path, size: int, ref_num
     with Image.open(image_path) as img:
         w, h = img.size
 
-    doc.add_picture(str(image_path), width=Inches(w / size / 96), height=Inches(h / size / 96))
+    doc.add_picture(str(image_path), width=Inches(w *size / 96), height=Inches(h * size / 96))
 
     paragraph = doc.add_paragraph()
     if ref_num.strip():
@@ -632,221 +634,7 @@ def ui_left_panel():
 
     return selected_db, rp, doc_path
 
-def docx_to_html(docx_path: Path) -> str:
-    with open(docx_path, "rb") as docx_file:
-        result = mammoth.convert_to_html(docx_file)
-        html = result.value  # HTML 字符串
-    return html
-
-def get_subfolders(base_dir: Path) -> list[str]:
-    folders = [""]
-    for root, dirs, _ in os.walk(base_dir):
-        for d in dirs:
-            full = Path(root) / d
-            rel = full.relative_to(base_dir)
-            folders.append(str(rel))
-    return sorted(folders)
-
-def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
-    """
-    右侧：编辑区 + 导入 docx + 图片导入 + 同义词/新建文档/新建数据库
-    """
-    # 🔥 同步当前 Content 到同义词管理
-    if "content_select" in st.session_state:
-        st.session_state["syn_current_content"] = st.session_state["content_select"]
-    st.markdown("### 内容录入")
-    colA, colB = st.columns([1, 3])
-
-    with colA:
-        # st.markdown("**引用源**")
-        ref_num = st.text_input(
-            "引用源",
-            value=st.session_state.get("ref_num", ""),
-            key="ref_num"
-        )
-
-    with colB:
-        # st.markdown("**小标题**")
-        declare = st.text_input(
-            "小标题",
-            value=st.session_state.get("declare", ""),
-            key="declare"
-        )
-    col_opt1, col_opt2 = st.columns([2, 1], gap="small")
-
-    with col_opt1:
-        hold = st.checkbox(
-            "保持小标题",
-            value=st.session_state.get("hold", False),
-            key="hold"
-        )
-
-    with col_opt2:
-        if st.button("去掉回车符", key="btn_remove_enter", use_container_width=True):
-            text = st.session_state.get("editor_text", "")
-            if text:
-                text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
-                st.session_state["editor_text"] = text
-
-    # # 粘贴区：云端不可靠获取系统剪贴板，所以用文本框替代
-    # paste_area = st.text_area(
-    #     "粘贴区（把内容粘贴到这里）",
-    #     value=st.session_state.get("paste_area", ""),
-    #     height=180,
-    #     key="paste_area",
-    # )
-    #
-    # if st.button("追加到正文编辑区", key="btn_append_to_editor"):
-    #     text = paste_area or ""
-    #     if remove_enter:
-    #         text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
-    #     else:
-    #         # 非代码逻辑在 web 端不再自动识别，只做温和处理
-    #         pass
-    #
-    #     existing = st.session_state.get("editor_text", "")
-    #     # 模拟你原来的逻辑：普通文本更偏向把换行变空格（这里不强行）
-    #     merged = (existing + "\n" + text).strip() if existing else text
-    #     st.session_state["editor_text"] = merged
-    # 加粗标题
-    # st.markdown("**正文编辑区**")
-    st.markdown(
-        "<div style='font-size:22px;font-weight:700;margin-bottom:-15px;'>正文编辑区</div>",
-        unsafe_allow_html=True
-    )
-
-    if "editor_text" not in st.session_state:
-        st.session_state.editor_text = ""
-    editor_text = st.text_area(
-        " ",
-        key="editor_text",
-        height=180
-    )
-
-    # ✅ 清空 + 导入 并排（导入更宽）
-    col_btn1, col_btn2, col_btn3 = st.columns([1.5, 2.5, 2], gap="small")
-    with col_btn1:
-        if st.button("清空", key="btn_clear_editor", use_container_width=True):
-            st.session_state["editor_text"] = ""
-
-    with col_btn2:
-        # 关键：导入到 docx
-        label = read_txt_state(P_LABEL_TXT, "User")
-        if st.button(
-                "保存笔记",
-                key="btn_import_docx",
-                use_container_width=True,
-                type="primary"
-        ):
-            try:
-                if not selected_db or not root_path:
-                    st.error("请先选择数据库")
-                    return
-                if not doc_path:
-                    st.error("未定位到 Word 文档路径。请先“重建资料库索引”，或确保资料库中存在同名 docx。")
-                    return
-
-                if not Path(doc_path).exists():
-                    st.error("docx 路径不存在")
-                    return
-
-                content = (st.session_state.get("editor_text") or "").strip()
-                if not content:
-                    st.error("正文编辑区为空")
-                    return
-
-                ref = (ref_num or "").strip()
-                dec = (declare or "").strip()
-
-                if dec:
-                    s = f"{dec}:{content}"
-                else:
-                    s = content
-
-                s = remove_invalid_characters(s)
-                if "\n" in s:
-                    s = "{" + s + "}"
-                s = s + f"[{ref}]" + f"[{label}]"
-
-                append_text_to_docx(Path(doc_path), s)
-
-                P_UPDATED_TXT.parent.mkdir(parents=True, exist_ok=True)
-
-                with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
-                    f.write(f"{selected_db}\n")
-                    f.write(f"{doc_path}\n")
-
-                new_score = record_history_and_increment()
-                st.toast(f"Action Score = {new_score}", icon="✅")
-
-                # 用删除，而不是赋值
-                del st.session_state["editor_text"]
-
-                st.rerun()
-            except Exception:
-                st.error("写入失败：\n" + traceback.format_exc())
-    with col_btn3:
-        if st.button("网页打开", key="btn_open_html", use_container_width=True):
-            if not doc_path or not Path(doc_path).exists():
-                st.error("未找到 Word 文件")
-            else:
-                # st.write("doc_path=",doc_path)
-                # time.sleep(5)
-                st.session_state["preview_doc_path"] = doc_path
-                st.switch_page("pages/文件查看.py")
-    st.divider()
-
-    st.markdown("### 图片保存")
-
-    img_file = st.file_uploader(
-        "上传 PNG/JPG",
-        type=["png", "jpg", "jpeg"],
-        key="img_uploader"
-    )
-
-    # 缩放 + 插入按钮 同一行
-    col_img1, col_img2 = st.columns([2, 1], gap="small")
-
-    with col_img1:
-        size = st.selectbox(
-            "图片缩放（size=1, 1/2, 1/3）",
-            [1, 2, 3],
-            index=0,
-            key="img_size"
-        )
-
-    with col_img2:
-        st.write("")  # 让按钮垂直对齐
-        if st.button("插入图片", key="btn_insert_img", use_container_width=True):
-            try:
-                if not img_file:
-                    st.error("请先上传图片")
-                    return
-                if not selected_db or not root_path or not doc_path:
-                    st.error("请先选择数据库并定位到 Word")
-                    return
-
-                P_TEMP_PNG.write_bytes(img_file.getvalue())
-
-                insert_image_into_docx(
-                    image_path=P_TEMP_PNG,
-                    docx_path=Path(doc_path),
-                    size=int(size),
-                    ref_num=(ref_num or ""),
-                    declare=(declare or ""),
-                    label=read_txt_state(P_LABEL_TXT, "User"),
-                )
-
-                st.success("图片插入成功")
-
-                new_score = record_history_and_increment()
-                st.toast(f"Action Score = {new_score}", icon="🖼️")
-
-                if not hold:
-                    st.session_state["declare"] = ""
-
-            except Exception:
-                st.error("插入失败：\n" + traceback.format_exc())
+def ui_left_panel_below(selected_db: str, root_path: str, doc_path: str):
     st.divider()
 
     # ========== 右侧下方：同义词管理 / 新建 Word / 新建数据库 ==========
@@ -1049,6 +837,244 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 rebuild_lib_path_index(paths["lib_dir"], paths["lib_path_txt"])
                 st.success(f"数据库创建完成：{root}")
 
+def docx_to_html(docx_path: Path) -> str:
+    with open(docx_path, "rb") as docx_file:
+        result = mammoth.convert_to_html(docx_file)
+        html = result.value  # HTML 字符串
+    return html
+
+def get_subfolders(base_dir: Path) -> list[str]:
+    folders = [""]
+    for root, dirs, _ in os.walk(base_dir):
+        for d in dirs:
+            full = Path(root) / d
+            rel = full.relative_to(base_dir)
+            folders.append(str(rel))
+    return sorted(folders)
+
+def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
+    """
+    右侧：编辑区 + 导入 docx + 图片导入 + 同义词/新建文档/新建数据库
+    """
+    # 🔥 同步当前 Content 到同义词管理
+    if "content_select" in st.session_state:
+        st.session_state["syn_current_content"] = st.session_state["content_select"]
+    st.markdown("### 内容录入")
+    colA, colB = st.columns([1, 3])
+
+    with colA:
+        # st.markdown("**引用源**")
+        ref_num = st.text_input(
+            "引用源",
+            value=st.session_state.get("ref_num", ""),
+            key="ref_num"
+        )
+
+    with colB:
+        # st.markdown("**小标题**")
+        declare = st.text_input(
+            "小标题",
+            value=st.session_state.get("declare", ""),
+            key="declare"
+        )
+    col_opt1, col_opt2 = st.columns([2, 1], gap="small")
+
+    with col_opt1:
+        hold = st.checkbox(
+            "保持小标题",
+            value=st.session_state.get("hold", False),
+            key="hold"
+        )
+
+    with col_opt2:
+        if st.button("去掉回车符", key="btn_remove_enter", use_container_width=True):
+            text = st.session_state.get("editor_text", "")
+            if text:
+                text = text.replace("\r\n", "").replace("\n", "").replace("\r", "")
+                st.session_state["editor_text"] = text
+
+
+    st.markdown(
+        "<div style='font-size:22px;font-weight:700;margin-bottom:-15px;'>正文编辑区</div>",
+        unsafe_allow_html=True
+    )
+
+    if "editor_text" not in st.session_state:
+        st.session_state.editor_text = ""
+    editor_text = st.text_area(
+        " ",
+        key="editor_text",
+        height=180
+    )
+
+    # ✅ 清空 + 导入 并排（导入更宽）
+    col_btn1, col_btn2, col_btn3 = st.columns([1.5, 2.5, 2], gap="small")
+    with col_btn1:
+        if st.button("清空", key="btn_clear_editor", use_container_width=True):
+            st.session_state["editor_text"] = ""
+
+    with col_btn2:
+        # 关键：导入到 docx
+        label = read_txt_state(P_LABEL_TXT, "User")
+        if st.button(
+                "保存笔记",
+                key="btn_import_docx",
+                use_container_width=True,
+                type="primary"
+        ):
+            try:
+                if not selected_db or not root_path:
+                    st.error("请先选择数据库")
+                    return
+                if not doc_path:
+                    st.error("未定位到 Word 文档路径。请先“重建资料库索引”，或确保资料库中存在同名 docx。")
+                    return
+
+                if not Path(doc_path).exists():
+                    st.error("docx 路径不存在")
+                    return
+
+                content = (st.session_state.get("editor_text") or "").strip()
+                if not content:
+                    st.error("正文编辑区为空")
+                    return
+
+                ref = (ref_num or "").strip()
+                dec = (declare or "").strip()
+
+                if dec:
+                    s = f"{dec}:{content}"
+                else:
+                    s = content
+
+                s = remove_invalid_characters(s)
+                if "\n" in s:
+                    s = "{" + s + "}"
+                s = s + f"[{ref}]" + f"[{label}]"
+
+                append_text_to_docx(Path(doc_path), s)
+
+                P_UPDATED_TXT.parent.mkdir(parents=True, exist_ok=True)
+
+                with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
+                    f.write(f"{selected_db}\n")
+                    f.write(f"{doc_path}\n")
+
+                new_score = record_history_and_increment()
+                st.toast(f"Action Score = {new_score}", icon="✅")
+
+                # 用删除，而不是赋值
+                del st.session_state["editor_text"]
+
+                st.rerun()
+            except Exception:
+                st.error("写入失败：\n" + traceback.format_exc())
+    with col_btn3:
+        if st.button("网页打开", key="btn_open_html", use_container_width=True):
+            if not doc_path or not Path(doc_path).exists():
+                st.error("未找到 Word 文件")
+            else:
+                # st.write("doc_path=",doc_path)
+                # time.sleep(5)
+                st.session_state["preview_doc_path"] = doc_path
+                st.switch_page("pages/文件查看.py")
+    st.divider()
+
+    st.markdown("### 图片保存")
+
+    # 初始化图片状态
+    if "image_to_use" not in st.session_state:
+        st.session_state.image_to_use = None
+
+    # ====== 两行两列布局 ======
+    row1_col1, row1_col2 = st.columns(2)
+    row2_col1, row2_col2 = st.columns(2)
+
+    # =============================
+    # 左上：上传 PNG
+    # =============================
+    with row1_col1:
+        img_file = st.file_uploader(
+            "上传 PNG/JPG",
+            type=["png", "jpg", "jpeg"],
+            key="img_uploader"
+        )
+
+        if img_file is not None:
+            st.session_state.image_to_use = Image.open(img_file).convert("RGB")
+
+    # =============================
+    # 右上：图片缩放
+    # =============================
+    with row1_col2:
+        size = st.selectbox(
+            "图片缩放（size=1, 1/2, 1/3）",
+            [0.3, 0.6, 1.0],
+            index=0,
+            key="img_size"
+        )
+
+
+
+    # =============================
+    # 右下：插入按钮
+    # =============================
+    with row2_col2:
+
+        if st.button("插入图片", key="btn_insert_img", use_container_width=True):
+            try:
+                image_to_use = st.session_state.image_to_use
+
+                if image_to_use is None:
+                    st.error("请先上传或粘贴图片")
+                    return
+
+                if not selected_db or not root_path or not doc_path:
+                    st.error("请先选择数据库并定位到 Word")
+                    return
+
+                P_TEMP_PNG.parent.mkdir(parents=True, exist_ok=True)
+                image_to_use.save(P_TEMP_PNG)
+
+                insert_image_into_docx(
+                    image_path=P_TEMP_PNG,
+                    docx_path=Path(doc_path),
+                    size=float(size),
+                    ref_num=(ref_num or ""),
+                    declare=(declare or ""),
+                    label=read_txt_state(P_LABEL_TXT, "User"),
+                )
+
+                st.success("图片插入成功")
+
+                new_score = record_history_and_increment()
+                st.toast(f"Action Score = {new_score}", icon="🖼️")
+
+                if not hold:
+                    st.session_state["declare"] = ""
+
+            except Exception as e:
+                st.error(f"插入失败: {e}")
+    # =============================
+    # 左下：粘贴图片
+    # =============================
+    with row2_col1:
+
+        pasted = paste_image_button(
+            label="点击这里或 Ctrl+V 粘贴图片",
+            key="paste_image"
+        )
+
+        if pasted is not None and hasattr(pasted, "image_data"):
+            st.session_state.image_to_use = pasted.image_data.convert("RGB")
+    # =============================
+    # 统一图片预览（底部）
+    # =============================
+    if st.session_state.image_to_use is not None:
+        st.image(st.session_state.image_to_use, caption="当前图片")
+
+
+
 
 def main():
     # st.set_page_config(page_title="共享笔记本", layout="centered")
@@ -1177,10 +1203,10 @@ def main():
 
     with left:
         selected_db, root_path, doc_path = ui_left_panel()
-
+        ui_left_panel_below(selected_db, root_path, doc_path)
     with right:
         ui_right_panel(selected_db, root_path, doc_path)
-
+    # with left:
 
 if __name__ == "__main__":
     main()
