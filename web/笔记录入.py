@@ -557,7 +557,7 @@ def ui_left_panel():
         # keyword2 = sanitize_keyword(keyword)
         # st.session_state["keyword_input"] = keyword2
         keyword2 = sanitize_keyword(keyword)
-        st.write("原始 keyword:", keyword)
+        # st.write("原始 keyword:", keyword)
         # st.write("清洗后 keyword2:", keyword2)
         set_txt_state(P_LAST_TITLE_TXT, keyword2)
 
@@ -574,15 +574,15 @@ def ui_left_panel():
                 ubuntu_root=rp
             else:
                 raise RuntimeError(f"Unsupported OS: {platform.system()}")
-            st.write("rp=", rp)
+            # st.write("rp=", rp)
             if not rp:
                 st.error("数据库 root_path 为空")
             else:
                 paths = ensure_db_structure(Path(rp))
-                st.write("paths[syn_db]=", paths["syn_db"])
-                st.write("keyword2=",keyword2)
+                # st.write("paths[syn_db]=", paths["syn_db"])
+                # st.write("keyword2=",keyword2)
                 results = syn_get_similar_contents(paths["syn_db"], keyword2)
-                st.write("results478=", results)
+                # st.write("results478=", results)
                 st.session_state["search_results"] = results
                 st.session_state["selected_content"] = results[0] if results else ""
 
@@ -605,29 +605,29 @@ def ui_left_panel():
     doc_path = ""
     if selected_db and rp and st.session_state.get("selected_content"):
         paths = ensure_db_structure(Path(rp))
-        st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
+        # st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
         lib_paths = load_lib_paths(paths["lib_path_txt"])
 
-        st.write("lib_paths[:10]=", lib_paths[:10])
-        st.write("keword=",  st.session_state["selected_content"])
+        # st.write("lib_paths[:10]=", lib_paths[:10])
+        # st.write("keword=",  st.session_state["selected_content"])
         doc_path = find_doc_path_by_keyword(lib_paths, st.session_state["selected_content"])
-        st.write("doc_path=", doc_path)
-        st.write("platform.system()",platform.system())
-
-        st.write("window_root",window_root)
+        # st.write("doc_path=", doc_path)
+        # st.write("platform.system()",platform.system())
+        #
+        # st.write("window_root",window_root)
         if platform.system() == "Linux":
-            st.write("ubuntu_root", ubuntu_root)
+            # st.write("ubuntu_root", ubuntu_root)
             doc_path = convert_doc_path(
                 doc_path,
                 window_root,
                 ubuntu_root
             )
 
-            st.write("doc_path552=", doc_path)
+            # st.write("doc_path552=", doc_path)
 
         doc_rel = extract_string_from_doc_path(doc_path) if doc_path else ""
-        st.write("doc_rel555=", doc_rel)
-    #
+    #     st.write("doc_rel555=", doc_rel)
+    # #
     # st.text_input("Word 相对路径（资料库后）", value=doc_rel, disabled=True, key="doc_rel_display")
 
     return selected_db, rp, doc_path
