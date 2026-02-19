@@ -20,6 +20,8 @@ from PIL import Image
 import mammoth
 import platform
 import time
+# 🔥 追加写入 updated.txt
+from datetime import datetime
 # st.write("当前操作系统:", platform.system())
 # =========================================================
 # 0) 相对路径配置（项目根目录 = web/ 的上一级）
@@ -34,6 +36,7 @@ APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
 DATABASE_ROOT.mkdir(parents=True, exist_ok=True)
 DATABASE_FILE_DIR.mkdir(parents=True, exist_ok=True)
 
+P_UPDATED_TXT = APP_STATE_DIR / "updated.txt"
 P_ROOTPATH_TXT = APP_STATE_DIR / "Rootpath.txt"
 P_PREPAGE_TXT = APP_STATE_DIR / "Prepage.txt"
 P_LAST_TITLE_TXT = APP_STATE_DIR / "last_title.txt"
@@ -634,11 +637,23 @@ def docx_to_html(docx_path: Path) -> str:
         result = mammoth.convert_to_html(docx_file)
         html = result.value  # HTML 字符串
     return html
+
+def get_subfolders(base_dir: Path) -> list[str]:
+    folders = [""]
+    for root, dirs, _ in os.walk(base_dir):
+        for d in dirs:
+            full = Path(root) / d
+            rel = full.relative_to(base_dir)
+            folders.append(str(rel))
+    return sorted(folders)
+
 def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     """
     右侧：编辑区 + 导入 docx + 图片导入 + 同义词/新建文档/新建数据库
     """
-
+    # 🔥 同步当前 Content 到同义词管理
+    if "content_select" in st.session_state:
+        st.session_state["syn_current_content"] = st.session_state["content_select"]
     st.markdown("### 内容录入")
     colA, colB = st.columns([1, 3])
 
@@ -754,9 +769,12 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 s = s + f"[{ref}]" + f"[{label}]"
 
                 append_text_to_docx(Path(doc_path), s)
-                # st.write ("Path(doc_path)=",Path(doc_path))
-                # time.sleep(5)
-                # st.success("写入成功")
+
+                P_UPDATED_TXT.parent.mkdir(parents=True, exist_ok=True)
+
+                with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
+                    f.write(f"{selected_db}\n")
+                    f.write(f"{doc_path}\n")
 
                 new_score = record_history_and_increment()
                 st.toast(f"Action Score = {new_score}", icon="✅")
@@ -836,72 +854,184 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
 
     with tab1:
         st.markdown("#### 同义词管理（Syn.db）")
+
         if not selected_db or not root_path:
             st.info("请先选择数据库")
         else:
             paths = ensure_db_structure(Path(root_path))
-            # 当前 content
-            current_content = st.session_state.get("selected_content", "")
-            st.text_input("当前 Content", value=current_content, disabled=True, key="syn_current_content")
 
-            new_syn = st.text_input("添加一个 Syn（同义词）", value="", key="syn_new_syn")
+            # 🔥 直接绑定左侧 selectbox 的值
+            current_content = st.session_state.get("content_select", "")
+
+            st.text_input(
+                "当前 Content",
+                disabled=True,
+                key="syn_current_content"
+            )
+
+            new_syn = st.text_input(
+                "添加一个 Syn（同义词）",
+                value="",
+                key="syn_new_syn"
+            )
+
             if st.button("添加 Syn", key="btn_syn_add"):
                 if not current_content:
                     st.error("当前 Content 为空，请先检索并选择一个 content")
+
                 elif not new_syn.strip():
                     st.error("Syn 不能为空")
+
                 else:
-                    syn_insert_or_update(paths["syn_db"], current_content, new_syn.strip())
+                    syn_insert_or_update(
+                        paths["syn_db"],
+                        current_content,
+                        new_syn.strip()
+                    )
+
+                    # 🔥 写入 updated.txt（只写数据库名称）
+                    P_UPDATED_TXT.parent.mkdir(parents=True, exist_ok=True)
+                    with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
+                        f.write(f"{selected_db}")
+
                     st.success("已添加")
 
             st.markdown("----")
-            rename_to = st.text_input("将 Content 重命名为", value="", key="syn_rename_to")
+
+            rename_to = st.text_input(
+                "将 Content 重命名为",
+                value="",
+                key="syn_rename_to"
+            )
+
             if st.button("执行重命名 Content", key="btn_syn_rename"):
                 if not current_content:
                     st.error("当前 Content 为空")
                 elif not rename_to.strip():
                     st.error("新名字不能为空")
                 else:
-                    syn_rename_content(paths["syn_db"], current_content, rename_to.strip())
-                    # 同时插入 content=syn=new
-                    syn_insert_or_update(paths["syn_db"], rename_to.strip(), rename_to.strip())
+                    syn_rename_content(
+                        paths["syn_db"],
+                        current_content,
+                        rename_to.strip()
+                    )
+
+                    syn_insert_or_update(
+                        paths["syn_db"],
+                        rename_to.strip(),
+                        rename_to.strip()
+                    )
+
                     st.success("重命名完成（Syn.db 已更新）")
-                    # 触发重新检索列表（简单做法：清空结果）
+
+                    # 清空搜索结果，强制刷新
                     st.session_state["search_results"] = []
-                    st.session_state["selected_content"] = ""
+                    st.session_state["content_select"] = ""
+                    st.rerun()
 
     with tab2:
         st.markdown("#### 新建 Word（从模板复制）")
+
         if not selected_db or not root_path:
             st.info("请先选择数据库")
         else:
             paths = ensure_db_structure(Path(root_path))
-            st.caption(f"资料库目录：{paths['lib_dir']}")
+            lib_dir = paths["lib_dir"]
 
-            new_name = st.text_input("新 Word 名称（不含 .docx）", value="", key="new_doc_name")
-            subdir = st.text_input("放入资料库的子文件夹（可空）", value="", key="new_doc_subdir")
+            st.caption(f"资料库目录：{lib_dir}")
 
+            # ===============================
+            # 第一行：Word 名称 + 新文件夹名称
+            # ===============================
+            col_name1, col_name2 = st.columns(2)
+
+            with col_name1:
+                new_name = st.text_input(
+                    "新 Word 名称（不含 .docx）",
+                    value="",
+                    key="new_doc_name"
+                )
+
+            with col_name2:
+                new_folder_name = st.text_input(
+                    "新文件夹名称（可空）",
+                    value="",
+                    key="new_folder_name"
+                )
+
+            # ===============================
+            # 扫描现有子目录
+            # ===============================
+            def get_subfolders(base_dir: Path) -> list[str]:
+                base_dir = base_dir.resolve()
+                folders = [""]  # 空表示根目录
+
+                for root, dirs, _ in os.walk(base_dir):
+                    root_path = Path(root)
+                    for d in dirs:
+                        full_path = (root_path / d).resolve()
+                        rel_path = full_path.relative_to(base_dir)
+                        folders.append(str(rel_path))
+
+                return sorted(set(folders))
+
+            subfolders = get_subfolders(lib_dir)
+
+            subdir_select = st.selectbox(
+                "选择放入资料库的子文件夹",
+                subfolders,
+                key="new_doc_subdir"
+            )
+
+            # ===============================
+            # 创建按钮
+            # ===============================
             if st.button("创建 Word", key="btn_create_doc"):
                 if not P_TEMPLATE_DOCX.exists():
                     st.error("未找到模板：data/app_state/template.docx（请放入模板文件）")
+
                 elif not new_name.strip():
-                    st.error("名称不能为空")
+                    st.error("Word 名称不能为空")
+
                 else:
-                    dst_dir = paths["lib_dir"] / subdir.strip() if subdir.strip() else paths["lib_dir"]
-                    dst_dir.mkdir(parents=True, exist_ok=True)
-                    dst = dst_dir / f"{new_name.strip()}.docx"
+                    # 🔥 构造最终目录
+                    final_dir = lib_dir
+
+                    if subdir_select:
+                        final_dir = final_dir / subdir_select
+
+                    if new_folder_name.strip():
+                        final_dir = final_dir / new_folder_name.strip()
+
+                    # 创建目录（如果不存在）
+                    final_dir.mkdir(parents=True, exist_ok=True)
+
+                    dst = final_dir / f"{new_name.strip()}.docx"
+
                     if dst.exists():
                         st.error("已存在同名 docx")
                     else:
                         dst.write_bytes(P_TEMPLATE_DOCX.read_bytes())
                         st.success(f"创建成功：{dst}")
+                        # 🔥 写入 updated.txt
+                        P_UPDATED_TXT.parent.mkdir(parents=True, exist_ok=True)
+
+                        with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
+                            f.write(f"{selected_db}\n")
+                            f.write(str(dst))
+
 
                         # 重建索引
-                        n = rebuild_lib_path_index(paths["lib_dir"], paths["lib_path_txt"])
+                        n = rebuild_lib_path_index(lib_dir, paths["lib_path_txt"])
                         st.toast(f"索引更新：{n} files", icon="📌")
 
-                        # 同义词录入：content=new_name, syn=new_name
-                        syn_insert_or_update(paths["syn_db"], new_name.strip(), new_name.strip())
+                        # 同义词录入
+                        syn_insert_or_update(
+                            paths["syn_db"],
+                            new_name.strip(),
+                            new_name.strip()
+                        )
+
                         st.toast("已写入同义词：content=syn=new_name", icon="🧠")
 
     with tab3:
