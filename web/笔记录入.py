@@ -635,7 +635,7 @@ def ui_left_panel():
     return selected_db, rp, doc_path
 
 def ui_left_panel_below(selected_db: str, root_path: str, doc_path: str):
-    st.divider()
+
 
     # ========== 右侧下方：同义词管理 / 新建 Word / 新建数据库 ==========
     tab1, tab2, tab3 = st.tabs(["同义词管理", "新建 Word 文档", "新建数据库"])
@@ -980,6 +980,8 @@ def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
                 st.switch_page("pages/文件查看.py")
     st.divider()
 
+def ui_right_panel_below(selected_db: str, root_path: str, doc_path: str):
+    st.divider()
     st.markdown("### 图片保存")
 
     # 初始化图片状态
@@ -1199,13 +1201,15 @@ def main():
 
     ui_header()
 
-    left, right = st.columns([1.05, 1.65], gap="large")
+    left, right = st.columns([1.35, 1.35], gap="large")
 
     with left:
         selected_db, root_path, doc_path = ui_left_panel()
-        ui_left_panel_below(selected_db, root_path, doc_path)
-    with right:
         ui_right_panel(selected_db, root_path, doc_path)
+    with right:
+        ui_left_panel_below(selected_db, root_path, doc_path)
+        ui_right_panel_below(selected_db, root_path, doc_path)
+
     # with left:
 
 if __name__ == "__main__":
