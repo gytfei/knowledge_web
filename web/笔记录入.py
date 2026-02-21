@@ -167,7 +167,14 @@ def db_fetch_database_names() -> list[str]:
     conn.close()
     names = [r[0] for r in rows]
     return [""] + names
-
+def remove_prefix_before_database(lines):
+    new_lines = []
+    for line in lines:
+        line = line.strip()
+        if "资料库/" in line:
+            new_part = line.split("资料库/", 1)[1]
+            new_lines.append(new_part + "\n")
+    return new_lines
 
 def db_get_root_path(database_name: str) -> str:
     if not database_name:
@@ -339,7 +346,7 @@ def rebuild_lib_path_index(lib_dir: Path, lib_path_txt: Path) -> int:
         for f in files:
             if (f.endswith(".doc") or f.endswith(".docx")) and ("~$" not in f):
                 paths.append(str(Path(root) / f))
-
+    paths=remove_prefix_before_database(paths)
     lib_path_txt.write_text("\n".join(paths) + ("\n" if paths else ""), encoding="utf-8", errors="ignore")
     return len(paths)
 
@@ -352,17 +359,36 @@ def rebuild_lib_path_index(lib_dir: Path, lib_path_txt: Path) -> int:
 #     # # 回写清理
 #     lib_path_txt.write_text("\n".join(valid) + ("\n" if valid else ""), encoding="utf-8", errors="ignore")
 #     return valid
-def load_lib_paths(lib_path_txt: Path) -> list[str]:
+def load_lib_paths(lib_path_txt: Path, selected_db) -> list[str]:
     if not lib_path_txt.exists():
         return []
 
-    lines = lib_path_txt.read_text(
+    raw_lines = lib_path_txt.read_text(
         encoding="utf-8",
         errors="ignore"
     ).splitlines()
-    # st.write("lines[:3]=", lines[:3])
-    # 只做 strip，不检查路径是否存在，不回写
-    return [ln.strip() for ln in lines if ln.strip()]
+
+    rp = db_get_root_path(selected_db)
+
+    clean_paths = []
+
+    for line in raw_lines:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        # 统一路径分隔符
+        line = line.replace("\\", "/")
+
+        # 去除可能已有的 资料库 前缀
+        if line.startswith("资料库/"):
+            line = line[len("资料库/"):]
+
+        full_path = os.path.join(rp, "资料库", line)
+        clean_paths.append(full_path)
+
+    return clean_paths
 
 def find_doc_path_by_keyword(lib_paths: list[str], keyword: str) -> str:
     for p in lib_paths:
@@ -609,7 +635,7 @@ def ui_left_panel():
     if selected_db and rp and st.session_state.get("selected_content"):
         paths = ensure_db_structure(Path(rp))
         # st.write("paths[lib_path_txt]=", paths["lib_path_txt"])
-        lib_paths = load_lib_paths(paths["lib_path_txt"])
+        lib_paths = load_lib_paths(paths["lib_path_txt"],selected_db)
 
         # st.write("lib_paths[:10]=", lib_paths[:10])
         # st.write("keword=",  st.session_state["selected_content"])
@@ -852,6 +878,7 @@ def get_subfolders(base_dir: Path) -> list[str]:
             rel = full.relative_to(base_dir)
             folders.append(str(rel))
     return sorted(folders)
+
 def ui_right_panel(selected_db: str, root_path: str, doc_path: str):
     st.divider()
 
