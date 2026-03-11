@@ -707,7 +707,7 @@ def ui_left_panel_below(selected_db: str, root_path: str, doc_path: str):
                     # 🔥 写入 updated.txt（只写数据库名称）
                     P_UPDATED_TXT.parent.mkdir(parents=True, exist_ok=True)
                     with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
-                        f.write(f"{selected_db}")
+                        f.write(f"{selected_db}\n")
 
                     st.success("已添加")
 
@@ -833,7 +833,7 @@ def ui_left_panel_below(selected_db: str, root_path: str, doc_path: str):
 
                         with open(P_UPDATED_TXT, "a", encoding="utf-8") as f:
                             f.write(f"{selected_db}\n")
-                            f.write(str(dst))
+                            f.write(str(dst)+"\n")
 
 
                         # 重建索引

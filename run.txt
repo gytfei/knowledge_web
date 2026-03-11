@@ -1,1 +1,1 @@
-streamlit run D:\knowledge_web\web\app1.0.1.py	
+streamlit run D:\knowledge_web\web\笔记录入.py	
