@@ -336,20 +336,56 @@ def ensure_db_structure(root_path: Path) -> dict[str, Path]:
     }
 
 
+# def rebuild_lib_path_index(lib_dir: Path, lib_path_txt: Path) -> int:
+#     """
+#     扫描 资料库 下所有 doc/docx，写入 Lib_path.txt
+#     同时清理不存在路径
+#     """
+#     paths: list[str] = []
+#     for root, _, files in os.walk(lib_dir):
+#         for f in files:
+#             if (f.endswith(".doc") or f.endswith(".docx")) and ("~$" not in f):
+#                 paths.append(str(Path(root) / f))
+#     paths=remove_prefix_before_database(paths)
+#     lib_path_txt.write_text("\n".join(paths) + ("\n" if paths else ""), encoding="utf-8", errors="ignore")
+#     return len(paths)
 def rebuild_lib_path_index(lib_dir: Path, lib_path_txt: Path) -> int:
     """
-    扫描 资料库 下所有 doc/docx，写入 Lib_path.txt
-    同时清理不存在路径
+    扫描资料库 lib_dir 下所有 doc/docx 文件，
+    写入 lib_path_txt，并返回文件数量
     """
-    paths: list[str] = []
+
+    paths = set()  # 用 set 自动去重
+
     for root, _, files in os.walk(lib_dir):
         for f in files:
-            if (f.endswith(".doc") or f.endswith(".docx")) and ("~$" not in f):
-                paths.append(str(Path(root) / f))
-    paths=remove_prefix_before_database(paths)
-    lib_path_txt.write_text("\n".join(paths) + ("\n" if paths else ""), encoding="utf-8", errors="ignore")
-    return len(paths)
 
+            # 过滤 Word 临时文件
+            if "~$" in f:
+                continue
+
+            # 只要 doc / docx
+            if not f.lower().endswith((".doc", ".docx")):
+                continue
+
+            p = Path(root) / f
+
+            # 转为相对路径（更稳定）
+            try:
+                rel = p.relative_to(lib_dir)
+            except ValueError:
+                rel = p
+
+            # 统一路径分隔符
+            paths.add(rel.as_posix())
+
+    # 排序，保证索引稳定
+    paths_sorted = sorted(paths)
+
+    # 写入文件
+    lib_path_txt.write_text("\n".join(paths_sorted), encoding="utf-8")
+
+    return len(paths_sorted)
 
 # def load_lib_paths(lib_path_txt: Path) -> list[str]:
 #     if not lib_path_txt.exists():
